@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Reusable race timing chips for $2.50 each, software included. Backed by parkrun.">
+<meta property="og:title" content="Tempus Chip">
+<meta property="og:description" content="Chip timing for every start line. Reusable chips for $2.50 each, software included.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23ffcc1f' stroke='%2314213a' stroke-width='5'/%3E%3C/svg%3E">
+<title>Tempus Chip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: race-bib paper ground, a live finish clock as hero, then a results-sheet rhythm of ruled rows */
+:root {
+  --paper: #f6f7f4;
+  --sheet: #ffffff;
+  --ink: #14213a;
+  --muted: #5b6577;
+  --rule: #d9dde3;
+  --mat: #ffcc1f;       /* timing-mat yellow */
+  --mat-ink: #14213a;
+  --signal: #1f6feb;
+  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1524; --sheet: #151e31; --ink: #e8ecf3; --muted: #9aa5b8; --rule: #26324a;
+    --mat: #ffcc1f; --mat-ink: #14213a; --signal: #6ea8ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1524; --sheet: #151e31; --ink: #e8ecf3; --muted: #9aa5b8; --rule: #26324a;
+  --mat: #ffcc1f; --mat-ink: #14213a; --signal: #6ea8ff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; border-radius: 4px; }
+
+/* nav */
+nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); }
+nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.logo { font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: .02em; text-transform: uppercase; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.logo i { width: 22px; height: 22px; border-radius: 50%; background: var(--mat); border: 3px solid var(--ink); display: inline-block; }
+nav ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; font-size: 15px; }
+nav ul a { text-decoration: none; color: var(--muted); }
+nav ul a:hover { color: var(--ink); }
+.btn { display: inline-block; font-family: var(--display); font-weight: 700; font-size: 19px; text-transform: uppercase; letter-spacing: .04em; text-decoration: none; padding: 10px 20px; border-radius: 6px; background: var(--mat); color: var(--mat-ink); border: 2px solid var(--mat); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+.btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+@media (max-width: 640px) { nav ul { display: none; } }
+
+/* hero */
+.hero { padding-block: 64px 56px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+.eyebrow { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 14px; }
+h1 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(52px, 8vw, 96px); line-height: 1; margin: 0 0 22px; text-wrap: balance; letter-spacing: -.005em; }
+h1 mark { display: inline-block; line-height: 1; background: var(--mat); color: var(--mat-ink); padding: .02em .12em 0; margin-block: .06em; }
+.lede { font-size: 19px; color: var(--muted); max-width: 34em; margin: 0 0 28px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* finish clock */
+.clock { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 22px; min-width: 0; box-shadow: 0 18px 40px -20px rgba(20,33,58,.55); }
+.clock-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+.live { display: inline-flex; align-items: center; gap: 6px; }
+.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--mat); animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.time { font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; font-size: clamp(40px, 6.5vw, 62px); line-height: 1.1; color: var(--mat); margin: 10px 0 16px; letter-spacing: -.02em; }
+.splits { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.splits td { padding: 7px 4px; border-top: 1px solid rgba(255,255,255,.12); }
+.splits td:last-child { text-align: right; }
+.splits .bib { opacity: .6; width: 4.5em; }
+.splits tr.new td { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: rgba(255,204,31,.28); } to { background: transparent; } }
+:root[data-theme="dark"] .clock, :root:not([data-theme="light"]) .clock { }
+.clock-foot { font-size: 12px; opacity: .55; margin-top: 12px; font-family: var(--mono); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .clock { background: #060a13; color: #e8ecf3; border: 1px solid var(--rule); } }
+:root[data-theme="dark"] .clock { background: #060a13; color: #e8ecf3; border: 1px solid var(--rule); }
+
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding-block: 40px; } }
+
+/* sections */
+section { padding-block: 72px; border-top: 1px solid var(--rule); }
+h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: clamp(36px, 5vw, 56px); line-height: .95; margin: 0 0 18px; text-wrap: balance; }
+.sec-head { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: end; margin-bottom: 40px; }
+.sec-head p { color: var(--muted); margin: 0; max-width: 34em; }
+@media (max-width: 760px) { .sec-head { grid-template-columns: 1fr; gap: 8px; } }
+
+/* cost bars */
+.cost { display: grid; gap: 22px; max-width: 760px; }
+.bar-row { display: grid; grid-template-columns: 11em 1fr; gap: 16px; align-items: center; }
+.bar-row span { font-weight: 600; }
+.bar-row small { display: block; color: var(--muted); font-weight: 400; font-size: 14px; }
+.track { height: 40px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.fill { height: 100%; background: var(--ink); display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; color: var(--paper); font-family: var(--mono); font-size: 14px; font-weight: 600; }
+.fill.ours { background: var(--mat); color: var(--mat-ink); justify-content: flex-start; padding-left: 10px; width: 10%; min-width: 3.4em; }
+.note { font-size: 14px; color: var(--muted); margin-top: 18px; }
+@media (max-width: 560px) { .bar-row { grid-template-columns: 1fr; gap: 6px; } }
+
+/* steps */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--sheet); }
+.step { padding: 28px 24px; border-right: 1px solid var(--rule); min-width: 0; }
+.step:last-child { border-right: 0; }
+.step .n { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: .1em; }
+.step h3 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 28px; margin: 6px 0 8px; line-height: 1; }
+.step p { margin: 0; color: var(--muted); font-size: 16px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } .step { border-right: 0; border-bottom: 1px solid var(--rule); } .step:last-child { border-bottom: 0; } }
+
+/* who */
+.who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+.who h3 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 24px; margin: 0 0 6px; padding-top: 12px; border-top: 4px solid var(--mat); }
+.who p { margin: 0; color: var(--muted); font-size: 16px; }
+@media (max-width: 760px) { .who { grid-template-columns: 1fr; gap: 24px; } }
+
+/* backing */
+.backing { display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: center; }
+.stamp { font-family: var(--display); font-weight: 800; text-transform: uppercase; font-size: 22px; line-height: 1.05; text-align: center; border: 3px solid var(--ink); border-radius: 50%; width: 170px; height: 170px; display: grid; place-content: center; transform: rotate(-8deg); }
+.stamp b { font-size: 34px; display: block; }
+.backing p { color: var(--muted); max-width: 36em; margin: 0 0 12px; }
+@media (max-width: 640px) { .backing { grid-template-columns: 1fr; } .stamp { width: 140px; height: 140px; } }
+
+/* contact */
+.contact { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 48px 36px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: center; }
+.contact h2 { color: var(--paper); }
+.contact p { opacity: .75; margin: 0; max-width: 32em; }
+.email { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.email code { font-family: var(--mono); font-size: 18px; background: rgba(255,255,255,.08); padding: 10px 14px; border-radius: 6px; user-select: all; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .contact { background: var(--sheet); color: var(--ink); border: 1px solid var(--rule); } :root:not([data-theme="light"]) .contact h2 { color: var(--ink); } }
+:root[data-theme="dark"] .contact { background: var(--sheet); color: var(--ink); border: 1px solid var(--rule); }
+:root[data-theme="dark"] .contact h2 { color: var(--ink); }
+@media (max-width: 760px) { .contact { grid-template-columns: 1fr; padding: 32px 22px; } }
+
+footer { padding-block: 40px 56px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+<style>body{margin:0} html{scroll-behavior:smooth} img{max-width:100%}</style>
+</head>
+<body>
+
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top"><i aria-hidden="true"></i>Tempus Chip</a>
+    <ul>
+      <li><a href="#cost">Cost</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#who">Who it's for</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a class="btn" href="#contact">Time your race</a>
+  </div>
+</nav>
+
+<main id="top" class="wrap">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Reusable race timing · Backed by parkrun</p>
+      <h1>Chip timing for <mark>every</mark> start line.</h1>
+      <p class="lede">Tempus Chip makes reusable timing chips for $2.50 each, timing software included. That's about a tenth of the cost of today's chips, so community 5Ks, school meets and charity runs can give every runner an accurate chip time.</p>
+      <div class="cta">
+        <a class="btn" href="#contact">Get chips for your race</a>
+        <a class="btn ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+
+    <div class="clock" aria-label="Sample finish clock">
+      <div class="clock-head"><span>Sample · Community 5K</span><span class="live">Live</span></div>
+      <div class="time" id="clock">00:17:42.0</div>
+      <table class="splits" aria-label="Sample finishers">
+        <tbody id="splits">
+          <tr><td class="bib">#0412</td><td>Finish</td><td>17:08.4</td></tr>
+          <tr><td class="bib">#0087</td><td>Finish</td><td>17:21.9</td></tr>
+          <tr><td class="bib">#0233</td><td>Finish</td><td>17:35.2</td></tr>
+        </tbody>
+      </table>
+      <div class="clock-foot">Example data. Each read is a chip crossing the finish mat.</div>
+    </div>
+  </header>
+
+  <section id="cost">
+    <div class="sec-head">
+      <h2>Timing shouldn't cost more than the medals.</h2>
+      <p>Most small races skip chip timing because the chips and the service are priced for big-city marathons. We built a chip that's cheap to make and comes back after every race.</p>
+    </div>
+    <div class="cost" role="img" aria-label="Tempus Chip costs about 10 percent of a conventional timing chip">
+      <div class="bar-row">
+        <span>Conventional chip<small>Often single-use</small></span>
+        <div class="track"><div class="fill" style="width:100%">100%</div></div>
+      </div>
+      <div class="bar-row">
+        <span>Tempus Chip<small>$2.50 per chip, software included</small></span>
+        <div class="track"><div class="fill ours">~10%</div></div>
+      </div>
+    </div>
+    <p class="note">Relative cost per chip. No separate software fee, and reuse brings the per-race cost down further.</p>
+  </section>
+
+  <section id="how">
+    <div class="sec-head">
+      <h2>Three steps, start to finish.</h2>
+      <p>No new habits for runners. Chips go out with bibs and come back at the finish.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="n">STEP 1 · PACKET PICKUP</div>
+        <h3>Hand out chips</h3>
+        <p>Each runner gets a chip paired to their bib number. It clips to a shoe or the bib.</p>
+      </div>
+      <div class="step">
+        <div class="n">STEP 2 · RACE DAY</div>
+        <h3>Cross the mat</h3>
+        <p>The finish mat reads each chip as it passes and records the time automatically.</p>
+      </div>
+      <div class="step">
+        <div class="n">STEP 3 · AFTER</div>
+        <h3>Collect and reuse</h3>
+        <p>Volunteers collect chips past the line. Results are ready, and the chips are ready for the next event.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="who">
+    <div class="sec-head">
+      <h2>Built for local races.</h2>
+      <p>If your results are on a clipboard today, you're who we built this for.</p>
+    </div>
+    <div class="who">
+      <div><h3>Run clubs</h3><p>Weekly runs and club championships with real chip times instead of a stopwatch and a pencil.</p></div>
+      <div><h3>Community races</h3><p>Charity 5Ks and neighbourhood fun runs that want proper results without a big timing bill.</p></div>
+      <div><h3>Schools</h3><p>Cross-country and track meets where accurate placings matter and budgets are tight.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="backing">
+      <div class="stamp" aria-hidden="true"><span>Backed by<b>parkrun</b></span></div>
+      <div>
+        <h2>Small team, one goal.</h2>
+        <p>Tempus Chip is a four-person team of runners and engineers based in Toronto. We're backed by parkrun and funded to bring affordable chip timing to the races that need it most.</p>
+        <p>Every community race deserves an accurate result.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" style="border-top:0">
+    <div class="contact">
+      <div>
+        <h2>Time your next race with us.</h2>
+        <p>Tell us about your event, how many runners you expect and when it is. We'll get back to you about chips and pricing.</p>
+      </div>
+      <div class="email">
+        <a href="mailto:hello@tempuschip.com"><code id="addr">hello@tempuschip.com</code></a>
+        <button class="btn" id="copy" type="button">Copy email</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>© 2026 Tempus Chip · Toronto, Canada</span>
+    <span>tempuschip.com</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  // Sample finish clock
+  var clock = document.getElementById('clock');
+  var body = document.getElementById('splits');
+  var t = 17 * 60 + 42; // seconds
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function fmt(s, tenths) {
+    var m = Math.floor(s / 60), sec = Math.floor(s % 60), d = Math.floor((s * 10) % 10);
+    return (tenths ? '00:' : '') + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0') + '.' + d;
+  }
+  if (!reduce) {
+    setInterval(function () { t += 0.1; clock.textContent = fmt(t, true); }, 100);
+    setInterval(function () {
+      var tr = document.createElement('tr');
+      tr.className = 'new';
+      var bib = '#' + String(Math.floor(Math.random() * 900) + 100).padStart(4, '0');
+      tr.innerHTML = '<td class="bib">' + bib + '</td><td>Finish</td><td>' + fmt(t - Math.random() * 2, false) + '</td>';
+      body.insertBefore(tr, body.firstChild);
+      while (body.children.length > 3) body.removeChild(body.lastChild);
+    }, 2600);
+  }
+
+  // Copy email
+  var btn = document.getElementById('copy');
+  btn.addEventListener('click', function () {
+    var addr = document.getElementById('addr').textContent;
+    function selectIt() {
+      var r = document.createRange(); r.selectNodeContents(document.getElementById('addr'));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = 'Selected';
+    }
+    try {
+      navigator.clipboard.writeText(addr).then(function () { btn.textContent = 'Copied'; }, selectIt);
+    } catch (e) { selectIt(); }
+    setTimeout(function () { btn.textContent = 'Copy email'; }, 2000);
+  });
+})();
+</script>
+
+</body>
+</html>
